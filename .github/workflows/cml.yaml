@@ -44,7 +44,7 @@ jobs:
     runs-on: [self-hosted, cml-gpu]
     timeout-minutes: 1440 # One day
     container:
-      image: iterativeai/cml:0-dvc2-base1
+      image: ghcr.io/iterative/cml@sha256:df596d1d182f20f63bbca976af24ce8b262925ebf9f041f77d33f1a4ac3fd67a
       options: --gpus all
     steps:
     - uses: actions/checkout@v2
