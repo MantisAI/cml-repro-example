@@ -9,19 +9,14 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_REGION: us-east-1
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
   REPO_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-  SKIP: dvc-pre-commit,dvc-pre-push,dvc-post-checkout
-  WANDB_MODE: offline
 
 
 jobs:
   deploy-runner:
     runs-on: [ubuntu-latest]
     steps:
-      - uses: iterative/setup-cml@v1.2.1
-        with:
-          version: '0.18.15'
+      - uses: iterative/setup-cml@v1
       - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -37,14 +32,12 @@ jobs:
           --labels cml-gpu \
           --idle-timeout 60 \
           --reuse-idle \
-          --cml-version="v0.18.15" \
-          --tpi-version="= 0.11.14"
   model-training:
     needs: deploy-runner
     runs-on: [self-hosted, cml-gpu]
     timeout-minutes: 1440 # One day
     container:
-      image: iterativeai/cml:0-dvc2-base1
+      image: iterativeai/cml:0-dvc2-base1-gpu
       options: --gpus all
     steps:
     - uses: actions/checkout@v2
@@ -56,7 +49,6 @@ jobs:
         cache: 'pip'
         cache-dependency-path: |
           requirements.txt
-          requirements_tests.txt
     - name: Install dependencies
       run: |
         apt-get update -y
@@ -64,20 +56,8 @@ jobs:
     - name: setup-repo
       run: |
 
-        cml ci \
-          --user-email='github@mantisnlp.com' \
-          --user-name='mantis-action-runner'
-
-        git fetch origin
-        git checkout ${{ github.head_ref || github.ref_name }}
-        git branch -va
-
-        pip install "dvc[s3]"
+        cml ci
     - name: create-report-md
-      run: |
-
-        echo "## Metrics" > report.md
-        echo "This report was created authomatically by the CML workflow `.github/workflows/cml.yaml`"
+      run: echo "## Metrics" > report.md
     - name: make-report-comment
-      run: |
-        cml comment create --pr report.md
+      run: cml comment create --pr report.md
